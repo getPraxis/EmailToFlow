@@ -1,4 +1,11 @@
-# Salesforce DX Project: Next Steps
+# Email To Flow
+
+Documentation coming soon.
+Package installation links:
+- [Production](https://login.salesforce.com/packaging/installPackage.apexp?p0=04tRN000001TQOLYA4)
+- [Sandbox](https://test.salesforce.com/packaging/installPackage.apexp?p0=04tRN000001TQOLYA4)
+
+
 
 Now that you’ve created a Salesforce DX project, what’s next? Here are some documentation resources to get you started.
 
