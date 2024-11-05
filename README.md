@@ -1,18 +1,24 @@
-# Salesforce DX Project: Next Steps
+# Email To Flow
 
-Now that you’ve created a Salesforce DX project, what’s next? Here are some documentation resources to get you started.
+Receive emails to a Salesforce address, and use Flow to define the logic of how to handle the email once it has been received.
 
-## How Do You Plan to Deploy Your Changes?
+## Introduction
+Salesforce has the ability to create custom email addresses which allow custom processing once the email has been received.
+Think Email-to-Case - but instead, Email-to-Anything.
+Normally, to receive emails into Salesforce and create any automation based on the email, Apex code must be created.
 
-Do you want to deploy a set of changes, or create a self-contained application? Choose a [development model](https://developer.salesforce.com/tools/vscode/en/user-guide/development-models).
+The purpoase of this package is to empower Declarative Developers (AKA Flownatics AKA Salesforce Administrators) to create the same capabilities.
 
-## Configure Your Salesforce DX Project
+## How does it work?
+The package includes:
+1. Apex Class (EmailToFlow) and Test Class
+2. Platform Event called 'Email to Flow Received'
+3. Sample Flow you can use as a starting point.
 
-The `sfdx-project.json` file contains useful configuration information for your project. See [Salesforce DX Project Configuration](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_ws_config.htm) in the _Salesforce DX Developer Guide_ for details about this file.
+Once an email is received:
+1. The Apex Class will handle the receipt of the email:
+   - Create ContentVersion record for each attachment included in the email
+   - Publish a Platform Event, including all relevant Email Details 
+2. Platform-Event Triggered Flow is used to then perform any logic that should occur (create records, send notifications, or whatever else you can dream of)
 
-## Read All About It
-
-- [Salesforce Extensions Documentation](https://developer.salesforce.com/tools/vscode/)
-- [Salesforce CLI Setup Guide](https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_intro.htm)
-- [Salesforce DX Developer Guide](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_intro.htm)
-- [Salesforce CLI Command Reference](https://developer.salesforce.com/docs/atlas.en-us.sfdx_cli_reference.meta/sfdx_cli_reference/cli_reference.htm)
+![Visual Flow of the Email to Flow Process](..Media/media/Email%20to%20Flow%20Process%20Map.png)
