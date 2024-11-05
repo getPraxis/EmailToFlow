@@ -21,4 +21,4 @@ Once an email is received:
    - Publish a Platform Event, including all relevant Email Details 
 2. Platform-Event Triggered Flow is used to then perform any logic that should occur (create records, send notifications, or whatever else you can dream of)
 
-![Visual Flow of the Email to Flow Process](..Media/media/Email%20to%20Flow%20Process%20Map.png)
+![Visual Flow of the Email to Flow Process](../Media/media/Email%20to%20Flow%20Process%20Map.png)
