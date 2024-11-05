@@ -1,0 +1,564 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <actionCalls>
+        <name>Send_Auto_Response_Email</name>
+        <label>Send Auto-Response Email</label>
+        <locationX>545</locationX>
+        <locationY>2234</locationY>
+        <actionName>emailSimple</actionName>
+        <actionType>emailSimple</actionType>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>emailAddresses</name>
+            <value>
+                <elementReference>$Record.Email_From_Address__c</elementReference>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>emailSubject</name>
+            <value>
+                <stringValue>We received your inquiry</stringValue>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>emailBody</name>
+            <value>
+                <elementReference>templateAutoResponse</elementReference>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>sendRichBody</name>
+            <value>
+                <booleanValue>true</booleanValue>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>useLineBreaks</name>
+            <value>
+                <booleanValue>true</booleanValue>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>relatedRecordId</name>
+            <value>
+                <elementReference>Create_Case</elementReference>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>logEmailOnSend</name>
+            <value>
+                <booleanValue>true</booleanValue>
+            </value>
+        </inputParameters>
+        <nameSegment>emailSimple</nameSegment>
+        <versionSegment>1</versionSegment>
+    </actionCalls>
+    <apiVersion>62.0</apiVersion>
+    <assignments>
+        <name>Add_Content_Document_Link_to_Collection</name>
+        <label>Add Content Document Link to Collection</label>
+        <locationX>270</locationX>
+        <locationY>1574</locationY>
+        <assignmentItems>
+            <assignToReference>colContentDocLinks</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>varContentDocLink</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Prep_Content_Document_Links</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>We&apos;ll use a formula to extract the left-most value before the comma, and assign it to the collection</description>
+        <name>Assign_Left_most_record_Id_to_collection</name>
+        <label>Assign Left-most record Id to collection</label>
+        <locationX>336</locationX>
+        <locationY>926</locationY>
+        <assignmentItems>
+            <assignToReference>colContentVersionIDs</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <stringValue>{!fxLeftMostContentVersionRecordId}</stringValue>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Remove_last_added_value_from_Variable</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>We need &apos;grab&apos; the record IDs, and then remove them from the string, and then repeat until the string is empty</description>
+        <name>Assign_the_Content_Version_IDs_to_a_variable</name>
+        <label>Assign the Content Version IDs to a variable</label>
+        <locationX>336</locationX>
+        <locationY>818</locationY>
+        <assignmentItems>
+            <assignToReference>varContentVersionIdsForExtraction</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>$Record.Content_Version_Ids__c</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Assign_Left_most_record_Id_to_collection</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>We&apos;ll create an instance of a Content Document Link, setting:
+1. The ContentDocumentLink we are itterating over
+2. The parent record, in this case the &apos;Case&apos;
+3. Sharing type = &apos;I&apos; - which means inherit visibility from the record</description>
+        <name>Define_Content_Document_Link_Record</name>
+        <label>Define Content Document Link Record</label>
+        <locationX>270</locationX>
+        <locationY>1466</locationY>
+        <assignmentItems>
+            <assignToReference>varContentDocLink.ContentDocumentId</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>Prep_Content_Document_Links.ContentDocumentId</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varContentDocLink.LinkedEntityId</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>Create_Case</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varContentDocLink.ShareType</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>I</stringValue>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Add_Content_Document_Link_to_Collection</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>We need to remove the value we just added from the variable</description>
+        <name>Remove_last_added_value_from_Variable</name>
+        <label>Remove last added value from Variable</label>
+        <locationX>336</locationX>
+        <locationY>1034</locationY>
+        <assignmentItems>
+            <assignToReference>varContentVersionIdsForExtraction</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>fxStringWithFirstValueRemoved</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Are_there_more_IDs_to_extract</targetReference>
+        </connector>
+    </assignments>
+    <decisions>
+        <description>The Content Versions field will hold a comma-separated list of Content Versions.
+We need to query them in order to get the Content Documents - however, we need to convert this comma separated list to a collection of text in order to use the Get records where id is &quot;IN&quot; these Ids.
+We can use a custom component to convert comma separated text to a collection (such as the one available on UnofficialSF) - but in this flow, we&apos;ll do it the manual way:
+1. If the Content Versions string is not Null (i.e. we have at least one record ID) - that means we have at least one attachment
+2. Otherwise, no attachments</description>
+        <name>Any_Attachments</name>
+        <label>Any Attachments?</label>
+        <locationX>545</locationX>
+        <locationY>710</locationY>
+        <defaultConnector>
+            <targetReference>Send_Auto_Response_Email</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>No Attachments</defaultConnectorLabel>
+        <rules>
+            <name>At_least_one_attachment</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.Content_Version_Ids__c</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Assign_the_Content_Version_IDs_to_a_variable</targetReference>
+            </connector>
+            <label>At least one attachment</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>If the working Variable is empty, then we extracted all IDs, otherwise, we need to repeat the process by connecting to the first element in the process</description>
+        <name>Are_there_more_IDs_to_extract</name>
+        <label>Are there more IDs to extract?</label>
+        <locationX>336</locationX>
+        <locationY>1142</locationY>
+        <defaultConnector>
+            <isGoTo>true</isGoTo>
+            <targetReference>Assign_Left_most_record_Id_to_collection</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Variable Not Empty</defaultConnectorLabel>
+        <rules>
+            <name>Variable_Empty</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>varContentVersionIdsForExtraction</leftValueReference>
+                <operator>IsBlank</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>varContentVersionIdsForExtraction</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Get_Content_Version_records</targetReference>
+            </connector>
+            <label>Variable Empty</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>It is always a good practice to verify we actually have something to create before attempting to create it</description>
+        <name>Do_we_need_to_insert_Content_Document_Links</name>
+        <label>Do we need to insert Content Document Links?</label>
+        <locationX>182</locationX>
+        <locationY>1766</locationY>
+        <defaultConnector>
+            <targetReference>Send_Auto_Response_Email</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Nothing to Insert</defaultConnectorLabel>
+        <rules>
+            <name>Insert_ContentDocLinks</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>colContentDocLinks</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Create_Content_Document_Links</targetReference>
+            </connector>
+            <label>Insert ContentDocLinks</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>Check if the email was sent to an email address that we want this flow to handle.
+This can be a Salesforce E-mail service address, or a company address.
+In many cases, and depends on how the email forwarding was set up, it makes sense to get the E-mail service and check if the E-mail To Address is not only the company address (that presumably was set to forward to the Salesforce Service Email) - but also the the Salesforce Email Address.
+
+You&apos;ll notice we are using &apos;Contains&apos; and that is because the String may contain more than one &apos;To&apos; addresses.
+
+You can have one flow to handle different e-mail addresses&apos; logic, or have one flow per e-mail address - which is what we are doing here.</description>
+        <name>What_e_mail_address_was_this_email_sent_to</name>
+        <label>What e-mail address was this email sent to?</label>
+        <locationX>737</locationX>
+        <locationY>278</locationY>
+        <defaultConnectorLabel>Not The Email We Care About</defaultConnectorLabel>
+        <rules>
+            <name>Email_was_received_to_xxx_xxxx_com</name>
+            <conditionLogic>or</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.Envelope_To_Address__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>xxx@mycompany.com</stringValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$Record.Envelope_To_Address__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <elementReference>fxFullEmailAddress</elementReference>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Create_Case</targetReference>
+            </connector>
+            <label>Email was received to xxx@mycompany.com</label>
+        </rules>
+    </decisions>
+    <description>Use this flow as a starting point for handling inbound emails to be processed by Email to Flow</description>
+    <environments>Default</environments>
+    <formulas>
+        <description>The full &apos;To&apos; address will be the local part + the email domain</description>
+        <name>fxFullEmailAddress</name>
+        <dataType>String</dataType>
+        <expression>{!Get_Email_Service_Address.LocalPart} &amp; &quot;@&quot; &amp;  {!Get_Email_Service_Address.EmailDomainName}</expression>
+    </formulas>
+    <formulas>
+        <description>Will get the left-most content version record Id</description>
+        <name>fxLeftMostContentVersionRecordId</name>
+        <dataType>String</dataType>
+        <expression>IF(CONTAINS({!varContentVersionIdsForExtraction}, &quot;,&quot;), /*If the variable contains a comma, we have more than one value remaining*/
+    LEFT({!varContentVersionIdsForExtraction}, FIND(&quot;,&quot;, {!varContentVersionIdsForExtraction})-1), /*Get everything up to the first comma*/
+    {!varContentVersionIdsForExtraction} /*Otherwise, there is no comma, get everything remaining*/
+)</expression>
+    </formulas>
+    <formulas>
+        <description>We&apos;ll use substitute to remove the value we grabbed previously</description>
+        <name>fxStringWithFirstValueRemoved</name>
+        <dataType>String</dataType>
+        <expression>SUBSTITUTE(SUBSTITUTE({!varContentVersionIdsForExtraction}, {!fxLeftMostContentVersionRecordId}&amp;&quot;,&quot;,  &quot;&quot;),{!fxLeftMostContentVersionRecordId},  &quot;&quot;)</expression>
+    </formulas>
+    <formulas>
+        <description>Removing any FW or RE from the email subject in case we have an existing record with this subject.
+Using Substitute 4 times to remove
+1. &apos;FW:&apos;
+2. &apos;FW: &apos; - with space after the colon
+3. &apos;RE:&apos;
+4. &apos;RE: &apos; - with a space after the colon</description>
+        <name>fxSubjectWithoutREorFW</name>
+        <dataType>String</dataType>
+        <expression>SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE({!$Record.Email_Subject__c}, &apos;RE: &apos;,&apos;&apos;), &apos;RE:&apos;, &apos;&apos;), &apos;FW: &apos;, &apos;&apos;), &apos;FW:&apos;,&apos;&apos;)</expression>
+    </formulas>
+    <interviewLabel>Email to Flow - Sample Flow for Email Handling {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Email to Flow - Sample Flow for Email Handling</label>
+    <loops>
+        <description>Now we need to create Content Document Link records to associated the attachments with our Case</description>
+        <name>Prep_Content_Document_Links</name>
+        <label>Prep Content Document Links</label>
+        <locationX>182</locationX>
+        <locationY>1358</locationY>
+        <collectionReference>Get_Content_Version_records</collectionReference>
+        <iterationOrder>Asc</iterationOrder>
+        <nextValueConnector>
+            <targetReference>Define_Content_Document_Link_Record</targetReference>
+        </nextValueConnector>
+        <noMoreValuesConnector>
+            <targetReference>Do_we_need_to_insert_Content_Document_Links</targetReference>
+        </noMoreValuesConnector>
+    </loops>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>OriginBuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <recordCreates>
+        <description>In this sample flow, we will create a Case, but you can replace this with creating any custom object</description>
+        <name>Create_Case</name>
+        <label>Create Case</label>
+        <locationX>545</locationX>
+        <locationY>386</locationY>
+        <connector>
+            <targetReference>Create_Email_Message</targetReference>
+        </connector>
+        <inputAssignments>
+            <field>Description</field>
+            <value>
+                <elementReference>$Record.Email_Subject__c</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>SuppliedEmail</field>
+            <value>
+                <elementReference>$Record.Email_From_Address__c</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>SuppliedName</field>
+            <value>
+                <elementReference>$Record.Email_From_Name__c</elementReference>
+            </value>
+        </inputAssignments>
+        <object>Case</object>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordCreates>
+    <recordCreates>
+        <description>Associate the documents to the Case we created</description>
+        <name>Create_Content_Document_Links</name>
+        <label>Create Content Document Links</label>
+        <locationX>50</locationX>
+        <locationY>1874</locationY>
+        <connector>
+            <targetReference>Send_Auto_Response_Email</targetReference>
+        </connector>
+        <inputReference>colContentDocLinks</inputReference>
+    </recordCreates>
+    <recordCreates>
+        <name>Create_Email_Message</name>
+        <label>Create Email Message</label>
+        <locationX>545</locationX>
+        <locationY>494</locationY>
+        <connector>
+            <targetReference>Get_Case</targetReference>
+        </connector>
+        <inputAssignments>
+            <field>FromAddress</field>
+            <value>
+                <elementReference>$Record.Email_From_Address__c</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>FromName</field>
+            <value>
+                <elementReference>$Record.Email_From_Name__c</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>HtmlBody</field>
+            <value>
+                <elementReference>$Record.Email_HTML_Body__c</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>Incoming</field>
+            <value>
+                <booleanValue>true</booleanValue>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>RelatedToId</field>
+            <value>
+                <elementReference>Create_Case</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>Subject</field>
+            <value>
+                <elementReference>$Record.Email_Subject__c</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>ToAddress</field>
+            <value>
+                <elementReference>$Record.Email_To_Addresses__c</elementReference>
+            </value>
+        </inputAssignments>
+        <object>EmailMessage</object>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordCreates>
+    <recordLookups>
+        <description>Let&apos;s get the case we created so we can use the Case number in the auto-response e-mail</description>
+        <name>Get_Case</name>
+        <label>Get Case</label>
+        <locationX>545</locationX>
+        <locationY>602</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Any_Attachments</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>Create_Case</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>Case</object>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordLookups>
+        <description>Get the content version records so we can extract the Content Document ID to create Links to our record</description>
+        <name>Get_Content_Version_records</name>
+        <label>Get Content Version records</label>
+        <locationX>182</locationX>
+        <locationY>1250</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Prep_Content_Document_Links</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>In</operator>
+            <value>
+                <elementReference>colContentVersionIDs</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>false</getFirstRecordOnly>
+        <object>ContentVersion</object>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordLookups>
+        <description>Replace the Value below with the API Name of the Email Service Address you created.</description>
+        <name>Get_Email_Service_Address</name>
+        <label>Get Email Service Address</label>
+        <locationX>737</locationX>
+        <locationY>170</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>What_e_mail_address_was_this_email_sent_to</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>DeveloperName</field>
+            <operator>EqualTo</operator>
+            <value>
+                <stringValue>My_custom_email_address</stringValue>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>EmailServicesAddress</object>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <start>
+        <locationX>611</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Get_Email_Service_Address</targetReference>
+        </connector>
+        <object>Email_to_Flow_Received__e</object>
+        <triggerType>PlatformEvent</triggerType>
+    </start>
+    <status>Active</status>
+    <textTemplates>
+        <description>A template to be used in the Auto-Response email</description>
+        <name>templateAutoResponse</name>
+        <isViewedAsPlainText>false</isViewedAsPlainText>
+        <text>&lt;p&gt;&lt;strong&gt;Dear {!$Record.Email_From_Name__c},&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;We received your query and &lt;strong&gt;case #{!Get_Case.CaseNumber}&lt;/strong&gt; has been created to track it.&lt;/p&gt;&lt;p&gt;You should receive an update shortly.&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;Regards,&lt;/p&gt;&lt;p&gt;Customer Support&lt;/p&gt;</text>
+    </textTemplates>
+    <variables>
+        <description>A collection of Content Document Links to create</description>
+        <name>colContentDocLinks</name>
+        <dataType>SObject</dataType>
+        <isCollection>true</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <objectType>ContentDocumentLink</objectType>
+    </variables>
+    <variables>
+        <description>A collection to hold the IDs of all Content Version records</description>
+        <name>colContentVersionIDs</name>
+        <dataType>String</dataType>
+        <isCollection>true</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <description>An instance of Content Document Link</description>
+        <name>varContentDocLink</name>
+        <dataType>SObject</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <objectType>ContentDocumentLink</objectType>
+    </variables>
+    <variables>
+        <description>Will be assigned the full set of content version IDs and then one by one they will be removed as they are added to a collection</description>
+        <name>varContentVersionIdsForExtraction</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+</Flow>

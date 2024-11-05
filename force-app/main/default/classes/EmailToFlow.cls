@@ -1,7 +1,6 @@
-/* @author: Munawir
- * @authorEmail: munawirrahman@gmail.com
- * @Full Documentation: https://munawirrahman.medium.com/email-to-flow-in-salesforce-ba8e300f9672
- * @Description: Email Service Router to Salesforce Flow Builder
+/* @author:         Praxis Solutions, LLC
+ * @authorEmail:    support@getpraxis.com
+ * @Description:    Email Service Publishes Platform Event that can be subscribed to by Flows or Apex.
  */
 
 global class EmailToFlow implements Messaging.inboundEmailHandler{
@@ -9,107 +8,32 @@ global class EmailToFlow implements Messaging.inboundEmailHandler{
     global Messaging.InboundEmailResult handleInboundEmail(Messaging.InboundEmail email, Messaging.InboundEnvelope env) {
         Messaging.InboundEmailResult result = new Messaging.InboundEmailResult();
         
-        //Assigning values from email and envelope to variable make it easier to read
-        String Envelope_FromAddress = env.FromAddress;
-        String Envelope_ToAddress = env.ToAddress;
-        List<String> Email_ToAddresses = email.ToAddresses;
-        String Email_FromName = email.FromName;
-        String Email_FromAddress = email.FromAddress;
-        List<String> Email_CCAddresses = email.CCAddresses;
-        String Email_Subject = email.Subject;
-        String Email_ReplyTo = email.ReplyTo;
-        String Email_InReplyTo = email.InReplyTo;
-        String Email_MessageId = email.MessageId;
-        List<String> Email_References = email.References;
-        String Email_HTMLBody = email.HTMLBody;
-        Boolean Email_IsHTMLTruncated = email.HTMLBodyIsTruncated;
-        String Email_TextBody = email.PlainTextBody;
-        Boolean Email_IsTextBodyTruncated = email.PlainTextBodyIsTruncated;
-        List<ContentVersion>Email_ContentVersion = ConvertAttachmentsToCV(email);
-        
-        Map<String, Object> MapFlow = new Map<String, Object>();
-        MapFlow.put('Envelope_FromAddress', Envelope_FromAddress);
-        System.debug('Input to Flow var Envelope_FromAddress: '+ Envelope_FromAddress);
-        
-        MapFlow.put('Envelope_ToAddress', Envelope_ToAddress);
-        System.debug('Input to Flow var Envelope_ToAddress: '+ Envelope_ToAddress);
-        
-        MapFlow.put('Email_ToAddresses', Email_ToAddresses);
-        System.debug('Input to Flow var Email_ToAddresses: '+ Email_ToAddresses);
-        
-        MapFlow.put('Email_FromName', Email_FromName);
-        System.debug('Input to Flow var Email_FromName: '+ Email_FromName);
-        
-        MapFlow.put('Email_FromAddress', Email_FromAddress);
-        System.debug('Input to Flow var Email_FromAddress: '+ Email_FromAddress);
-        
-        MapFlow.put('Email_CCAddresses', Email_CCAddresses);
-        System.debug('Input to Flow var Email_CCAddresses: '+ Email_CCAddresses);
-        
-        MapFlow.put('Email_Subject', Email_Subject);
-        System.debug('Input to Flow var Email_Subject: '+ Email_Subject);
-        
-        MapFlow.put('Email_ReplyTo', Email_ReplyTo);
-        System.debug('Input to Flow var Email_ReplyTo: '+ Email_ReplyTo);
-        
-        MapFlow.put('Email_MessageId', Email_MessageId);
-        System.debug('Input to Flow var Email_MessageId: '+ Email_MessageId);
-        
-        MapFlow.put('Email_References', Email_References);
-        System.debug('Input to Flow var Email_References: '+ Email_References);
-        
-        MapFlow.put('Email_HTMLBody', Email_HTMLBody);
-        System.debug('Input to Flow var Email_HTMLBody: '+ Email_HTMLBody);
-        
-        MapFlow.put('Email_IsHTMLTruncated', Email_IsHTMLTruncated);
-        System.debug('Input to Flow var Email_IsHTMLTruncated: '+ Email_IsHTMLTruncated);
-        
-        MapFlow.put('Email_TextBody', Email_TextBody);
-        System.debug('Input to Flow var Email_TextBody: '+ Email_TextBody);
-        
-        MapFlow.put('Email_IsTextBodyTruncated', Email_IsTextBodyTruncated);
-        System.debug('Input to Flow var Email_IsTextBodyTruncated: '+ Email_IsTextBodyTruncated);
-        
-        MapFlow.put('Email_ContentVersion',Email_ContentVersion);
-        System.debug('Input to Flow var Email_ContentVersion: '+ Email_ContentVersion);
-        
-        System.debug('Running flow...');
-        
-        //EmailToFlowController = autolaunched flow api name
-        Flow.Interview.EmailToFlowController myFlow = new Flow.Interview.EmailToFlowController(MapFlow);
-        myFlow.start();
-        System.debug('Flow finished.');
-        
-        //AutoReply Email to Sender but AutoReplyMessage should be assigned in flow
-        if(myFlow.AutoReplyMessage != Null){
-            Messaging.SingleEmailMessage AutoReply = new Messaging.SingleEmailMessage();
-            List<String> AutoReplyToAddresses = new List<String>{Email_fromAddress};
-            AutoReply.setToAddresses(AutoReplyToAddresses);
-            AutoReply.setCcAddresses(Email_CCAddresses);
-            AutoReply.setInReplyTo(Email_messageId);
-            AutoReply.setSubject(Email_Subject);
-            AutoReply.setHtmlBody(myFlow.AutoReplyMessage);
-            Messaging.SingleEmailMessage[] AutoReplyMessages = new List<Messaging.SingleEmailMessage> {AutoReply};
-            IF (checkEmailDeliverability()) {
-                Messaging.sendEmail(AutoReplyMessages);
-            }
-        }
+        Email_to_Flow_Received__e emailPE = new Email_to_Flow_Received__e (
+            Email_From_Address__c           = email.FromAddress,
+            Email_From_Name__c              = email.FromName,
+            Email_Subject__c                = email.Subject,
+            Email_HTML_Body__c              = email.HTMLBody,
+            Email_Text_Body__c              = email.PlainTextBody,
+            Email_Message_Id__c             = email.MessageId,
+            Email_In_ReplyTo__c             = email.InReplyTo,
+            Email_Is_HTML_Truncated__c      = email.HTMLBodyIsTruncated,
+            Email_Is_Text_Body_Truncated__c = email.PlainTextBodyIsTruncated,
+            Email_Reply_To__c               = email.ReplyTo,
+            Envelope_From_Address__c        = env.FromAddress,
+            Envelope_To_Address__c          = env.ToAddress,
+            Email_To_Addresses__c           = email.ccAddresses != null ? String.join(email.toAddresses, ',') : null,
+            Email_CC_Addresses__c           = email.ccAddresses != null ? String.join(email.ccAddresses, ','): null,
+            Email_References__c             = email.References  != null ? String.join(email.References, ',') : null,
+            Content_Version_Ids__c          = ConvertAttachmentsToCV(email)
+        );
+       
+        //Publish Platform Event
+        EventBus.publish(emailPE);
         return result;
     }
     
-    private boolean checkEmailDeliverability(){
-        Boolean EmailDeliverabilityEnabled = true;
-        try {
-            Messaging.reserveSingleEmailCapacity(1);
-            Messaging.reserveMassEmailCapacity(1);
-        } catch (System.NoAccessException e) {
-            EmailDeliverabilityEnabled = false;
-        }
-        return EmailDeliverabilityEnabled;
-    }
-    
     //Convert All Attachments to List of ContentVersion
-    private static List<ContentVersion>ConvertAttachmentsToCV(Messaging.InboundEmail email){
+    private static String ConvertAttachmentsToCV(Messaging.InboundEmail email){
         List<ContentVersion>CVRecords = new List<ContentVersion>();
         //Convert binary attachments to ContentVersion
         if (email.BinaryAttachments != null && !email.BinaryAttachments.isEmpty()){
@@ -131,12 +55,18 @@ global class EmailToFlow implements Messaging.inboundEmailHandler{
                 CVRecords.add(CVRecord);
             }
         }
+
+        String cvRecordIDs = '';
         //return only if Attachments exist
         if(CVRecords != null && !CVRecords.isEmpty()){
-            return CVRecords;
+            insert CVRecords;
+            List<String> Ids = new List<String>();
+            for(ContentVersion CV : CVRecords){
+                Ids.add(CV.Id);
+            }
+            cvRecordIDs = string.join(Ids,',');
         }
-        else{
-            return null;
-        }
+
+        return cvRecordIDs;
     }
 }

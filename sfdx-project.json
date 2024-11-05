@@ -2,11 +2,26 @@
   "packageDirectories": [
     {
       "path": "force-app",
-      "default": true
+      "package": "PraxisEmailToFlow",
+      "versionName": "ver 1.1",
+      "versionNumber": "1.1.0.NEXT",
+      "versionDescription": "Receive any email and launch any flow by using the power of Platform Events "
     }
   ],
   "name": "Praxis LWC Utilities",
-  "namespace": "",
+  "namespace": "Praxis",
   "sfdcLoginUrl": "https://login.salesforce.com",
-  "sourceApiVersion": "59.0"
+  "sourceApiVersion": "59.0",
+  "packageAliases": {
+    "PraxisEmailToFlow": "0HoRN00000000w50AA",
+    "PraxisEmailToFlow@0.1.0-1": "04tRN000001RWb7YAG",
+    "PraxisEmailToFlow@0.1.0-2": "04tRN000001RWfxYAG",
+    "PraxisEmailToFlow@0.1.0-3": "04tRN000001RWmPYAW",
+    "PraxisEmailToFlow@0.1.0-4": "04tRN000001TMxfYAG",
+    "PraxisEmailToFlow@0.1.0-5": "04tRN000001TQGHYA4",
+    "PraxisEmailToFlow@0.1.0-6": "04tRN000001TQJVYA4",
+    "PraxisEmailToFlow@0.1.0-7": "04tRN000001TQL7YAO",
+    "PraxisEmailToFlow@0.1.0-8": "04tRN000001TQMjYAO",
+    "PraxisEmailToFlow@1.1.0-1": "04tRN000001TQOLYA4"
+  }
 }
