@@ -1,4 +1,4 @@
-1. # Email To Flow
+# Email To Flow
 
 Receive emails to a Salesforce address, and use Flow to define the logic of how to handle the email once it has been received.
 
