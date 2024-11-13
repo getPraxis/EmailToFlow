@@ -66,6 +66,6 @@ This will allow you to replace 4 elements with a single Apex Action.
 
 To install this component, use one of the following links:
 
-[Sandbox](https://test.salesforce.com/packaging/installPackage.apexp?p0=04tRN000001TQOLYA4) - https://test.salesforce.com/packaging/installPackage.apexp?p0=04tRN000001TQOLYA4
+[Sandbox](https://test.salesforce.com/packaging/installPackage.apexp?p0=04tRN000001TQOLYA4)
 
-[Production/Dev](https://login.salesforce.com/packaging/installPackage.apexp?p0=04tRN000001TQOLYA4) - https://login.salesforce.com/packaging/installPackage.apexp?p0=04tRN000001TQOLYA4
+[Production/Dev](https://login.salesforce.com/packaging/installPackage.apexp?p0=04tRN000001TQOLYA4)
