@@ -21,7 +21,7 @@ global class EmailToFlow implements Messaging.inboundEmailHandler{
             Email_Reply_To__c               = email.ReplyTo,
             Envelope_From_Address__c        = env.FromAddress,
             Envelope_To_Address__c          = env.ToAddress,
-            Email_To_Addresses__c           = email.ccAddresses != null ? String.join(email.toAddresses, ',') : null,
+            Email_To_Addresses__c           = email.toAddresses != null ? String.join(email.toAddresses, ',') : null,
             Email_CC_Addresses__c           = email.ccAddresses != null ? String.join(email.ccAddresses, ','): null,
             Email_References__c             = email.References  != null ? String.join(email.References, ',') : null,
             Content_Version_Ids__c          = ConvertAttachmentsToCV(email)
